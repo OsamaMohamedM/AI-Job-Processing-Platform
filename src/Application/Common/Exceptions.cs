@@ -1,26 +1,26 @@
 ﻿namespace Application.Common;
 
-public class DomainException : Exception
+public abstract class GenralException : Exception
 {
-    public DomainException(string message) : base(message)
+    public GenralException(string message) : base(message)
     {
     }
 }
 
-public class NotFoundException : DomainException
+public class NotFoundException : GenralException
 {
     public NotFoundException(string resourceName, object key)
         : base($"Entity \"{resourceName}\" ({key}) was not found.") { }
 }
 
-public class ConflictException : DomainException
+public class ConflictException : GenralException
 {
     public ConflictException(string message) : base(message)
     {
     }
 }
 
-public class ValidationException : DomainException
+public class ValidationException : GenralException
 {
     public IDictionary<string, string[]> Errors { get; }
 

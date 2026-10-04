@@ -1,4 +1,5 @@
 ﻿using Application.Common;
+using Domain.Common;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 
