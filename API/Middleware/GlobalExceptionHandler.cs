@@ -1,7 +1,6 @@
-﻿using Application.Common;
+using Application.Common;
 using Domain.Common;
 using Microsoft.AspNetCore.Diagnostics;
-using Microsoft.AspNetCore.Mvc;
 
 namespace API.Middleware;
 
@@ -19,102 +18,104 @@ public class GlobalExceptionHandler : IExceptionHandler
         Exception exception,
         CancellationToken cancellationToken)
     {
-        var correlationId = httpContext.Items["CorrelationId"]?.ToString()
-                            ?? httpContext.TraceIdentifier;
+        var traceId = httpContext.Items["CorrelationId"]?.ToString()
+            ?? httpContext.TraceIdentifier;
 
-        var (statusCode, title, detail, errors) = MapException(exception);
+        var (statusCode, code, message, errors) = MapException(exception);
 
         if (statusCode == StatusCodes.Status500InternalServerError)
         {
-            _logger.LogError(exception, "Unhandled exception occurred. CorrelationId: {CorrelationId}", correlationId);
+            LogUnhandledException(_logger, exception);
         }
         else
         {
-            _logger.LogWarning(exception, "Handled exception mapped to Status {StatusCode}. CorrelationId: {CorrelationId}", statusCode, correlationId);
-        }
-
-        var problemDetails = new ProblemDetails
-        {
-            Status = statusCode,
-            Title = title,
-            Detail = detail,
-            Instance = httpContext.Request.Path
-        };
-
-        problemDetails.Extensions["correlationId"] = correlationId;
-
-        if (errors != null)
-        {
-            problemDetails.Extensions["errors"] = errors;
+            LogHandledException(_logger, statusCode, code, exception);
         }
 
         httpContext.Response.StatusCode = statusCode;
-        httpContext.Response.ContentType = "application/problem+json";
+        httpContext.Response.ContentType = "application/json";
 
-        await httpContext.Response.WriteAsJsonAsync(problemDetails, cancellationToken);
+        await httpContext.Response.WriteAsJsonAsync(
+            new ApiError(code, message, traceId, errors),
+            cancellationToken);
 
         return true;
     }
 
-    private static (int StatusCode, string Title, string Detail, object? Errors) MapException(Exception exception)
+    private static (
+        int StatusCode,
+        string Code,
+        string Message,
+        IReadOnlyDictionary<string, string[]>? Errors) MapException(Exception exception)
     {
         return exception switch
         {
-            ValidationException valEx => (
+            Application.Common.ValidationException validationException => (
                 StatusCodes.Status400BadRequest,
-                "Validation Error",
-                valEx.Message,
-                valEx.Errors
-            ),
+                "validation_failed",
+                validationException.Message,
+                new Dictionary<string, string[]>(validationException.Errors)),
 
-            BadHttpRequestException badReqEx when badReqEx.StatusCode == StatusCodes.Status400BadRequest => (
+            BadHttpRequestException badRequestException
+                when badRequestException.StatusCode == StatusCodes.Status413PayloadTooLarge => (
+                    StatusCodes.Status413PayloadTooLarge,
+                    "invalid_request",
+                    "The request body is too large.",
+                    null),
+
+            BadHttpRequestException => (
                 StatusCodes.Status400BadRequest,
-                "Malformed Request",
+                "invalid_request",
                 "The request payload is invalid or malformed.",
-                null
-            ),
+                null),
 
-            BadHttpRequestException badReqEx when badReqEx.StatusCode == StatusCodes.Status413PayloadTooLarge => (
-                StatusCodes.Status413PayloadTooLarge,
-                "Payload Too Large",
-                "The request entity exceeds the maximum allowed limit.",
-                null
-            ),
+            UnauthorizedException unauthorizedException => (
+                StatusCodes.Status401Unauthorized,
+                "invalid_credentials",
+                unauthorizedException.Message,
+                null),
 
             UnauthorizedAccessException => (
                 StatusCodes.Status401Unauthorized,
-                "Unauthorized",
+                "unauthorized",
                 "You are not authorized to access this resource.",
-                null
-            ),
+                null),
 
-            NotFoundException notFoundEx => (
+            NotFoundException notFoundException => (
                 StatusCodes.Status404NotFound,
-                "Resource Not Found",
-                notFoundEx.Message,
-                null
-            ),
+                "not_found",
+                notFoundException.Message,
+                null),
 
-            ConflictException conflictEx => (
+            ConflictException conflictException => (
                 StatusCodes.Status409Conflict,
-                "Conflict",
-                conflictEx.Message,
-                null
-            ),
+                "conflict",
+                conflictException.Message,
+                null),
 
-            DomainException domainEx => (
+            DomainException domainException => (
                 StatusCodes.Status409Conflict,
-                "Domain Rule Violation",
-                domainEx.Message,
-                null
-            ),
+                "invalid_operation",
+                domainException.Message,
+                null),
 
             _ => (
                 StatusCodes.Status500InternalServerError,
-                "Internal Server Error",
-                "An unexpected error occurred. Please use the correlation ID when contacting support.",
-                null
-            )
+                "internal_error",
+                "An unexpected error occurred.",
+                null)
         };
     }
+
+    private static readonly Action<ILogger, Exception?> LogUnhandledException =
+        LoggerMessage.Define(
+            LogLevel.Error,
+            new EventId(1, "UnhandledException"),
+            "UnhandledException");
+
+    private static readonly Action<ILogger, int, string, Exception?> LogHandledException =
+        LoggerMessage.Define<int, string>(
+            LogLevel.Warning,
+            new EventId(2, "HandledException"),
+            "HandledException {StatusCode} {ErrorCode}");
 }

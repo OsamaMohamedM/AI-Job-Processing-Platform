@@ -1,12 +1,16 @@
+using API.Endpoints;
+using API.Infrastructure;
 using API.Middleware;
+using Application.Identity;
+using Application.Identity.Login;
+using Application.Identity.Register;
+using FluentValidation;
 using Infrastructure;
 using Serilog;
 using Serilog.Formatting.Compact;
 
 var builder = WebApplication.CreateBuilder(args);
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
-builder.Services.AddInfrastructure(builder.Configuration);
 Log.Logger = new LoggerConfiguration()
     .ReadFrom.Configuration(builder.Configuration)
     .Enrich.FromLogContext()
@@ -16,10 +20,28 @@ Log.Logger = new LoggerConfiguration()
 
 builder.Host.UseSerilog();
 
+builder.Services.AddInfrastructure(builder.Configuration);
+builder.Services.AddJwtAuthentication(builder.Configuration);
+
+builder.Services.AddScoped<RegisterUserHandler>();
+builder.Services.AddScoped<LoginHandler>();
+builder.Services.AddScoped<IValidator<RegisterRequest>, RegisterRequestValidator>();
+builder.Services.AddScoped<IValidator<LoginRequest>, LoginRequestValidator>();
+
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
+
 var app = builder.Build();
+
 app.UseMiddleware<CorrelationIdMiddleware>();
 app.UseExceptionHandler();
+
+app.UseAuthentication();
+app.UseAuthorization();
+
+app.MapAuthEndpoints();
+
+app.MapGet("/api/ping", () => Results.Ok(new { message = "pong" }))
+    .RequireAuthorization();
 
 app.Run();

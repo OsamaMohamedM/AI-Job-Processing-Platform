@@ -20,6 +20,13 @@ public class ConflictException : GenralException
     }
 }
 
+public class UnauthorizedException : GenralException
+{
+    public UnauthorizedException(string message) : base(message)
+    {
+    }
+}
+
 public class ValidationException : GenralException
 {
     public IDictionary<string, string[]> Errors { get; }

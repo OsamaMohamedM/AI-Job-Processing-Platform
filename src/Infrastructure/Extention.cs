@@ -1,4 +1,7 @@
-﻿using Infrastructure.Persistence;
+using Application.IRepositories;
+using Infrastructure.Persistence;
+using Infrastructure.Persistence.Repositories;
+using Infrastructure.Security;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -12,7 +15,9 @@ public static class DependencyInjection
         IConfiguration configuration)
     {
         var connectionString =
-            configuration.GetConnectionString("DefaultConnection");
+            configuration.GetConnectionString("Default")
+            ?? configuration.GetConnectionString("DefaultConnection")
+            ?? configuration["DefaultConnection:ConnectionString"];
 
         services.AddDbContext<AppDbContext>(options =>
             options.UseSqlServer(connectionString, sqlOptions =>
@@ -22,6 +27,11 @@ public static class DependencyInjection
                     maxRetryDelay: TimeSpan.FromSeconds(10),
                     errorNumbersToAdd: null);
             }));
+
+        services.AddScoped<IUnitOfWork>(sp => sp.GetRequiredService<AppDbContext>());
+        services.AddScoped<IUserRepository, EfUserRepository>();
+        services.AddScoped<Application.IRepositories.IPasswordHasher, Pbkdf2PasswordHasher>();
+        services.AddScoped<ITokenService, JwtTokenService>();
 
         return services;
     }
