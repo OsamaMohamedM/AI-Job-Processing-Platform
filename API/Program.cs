@@ -30,18 +30,18 @@ builder.Services.AddScoped<IValidator<LoginRequest>, LoginRequestValidator>();
 
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
+builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
-
+app.UseSwagger();
+app.UseSwaggerUI();
 app.UseMiddleware<CorrelationIdMiddleware>();
 app.UseExceptionHandler();
+app.MapGet("/api/ping", () => Results.Ok(new { message = "pong" }));
 
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapAuthEndpoints();
-
-app.MapGet("/api/ping", () => Results.Ok(new { message = "pong" }))
-    .RequireAuthorization();
 
 app.Run();
