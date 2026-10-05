@@ -1,4 +1,6 @@
-﻿namespace Application.Common;
+﻿using Domain.Jobs.Enums;
+
+namespace Application.Common;
 
 public abstract class GenralException : Exception
 {
@@ -29,11 +31,14 @@ public class UnauthorizedException : GenralException
 
 public class ValidationException : GenralException
 {
-    public IDictionary<string, string[]> Errors { get; }
+    public IReadOnlyDictionary<string, string[]> Errors { get; }
 
-    public ValidationException(IDictionary<string, string[]> errors)
+    public ValidationException(IReadOnlyDictionary<string, string[]> errors)
         : base("One or more validation failures have occurred.")
     {
         Errors = errors;
     }
 }
+
+public sealed class UnsupportedJobTypeException(JobType type)
+    : Exception($"No handler registered for job type {type}.");

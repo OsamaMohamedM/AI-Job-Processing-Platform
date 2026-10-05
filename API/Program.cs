@@ -1,10 +1,7 @@
 using API.Endpoints;
 using API.Infrastructure;
 using API.Middleware;
-using Application.Identity;
-using Application.Identity.Login;
-using Application.Identity.Register;
-using FluentValidation;
+using Application;
 using Infrastructure;
 using Serilog;
 using Serilog.Formatting.Compact;
@@ -22,12 +19,7 @@ builder.Host.UseSerilog();
 
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddJwtAuthentication(builder.Configuration);
-
-builder.Services.AddScoped<RegisterUserHandler>();
-builder.Services.AddScoped<LoginHandler>();
-builder.Services.AddScoped<IValidator<RegisterRequest>, RegisterRequestValidator>();
-builder.Services.AddScoped<IValidator<LoginRequest>, LoginRequestValidator>();
-
+builder.Services.AddApplication(builder.Configuration);
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
 builder.Services.AddSwaggerGen();
