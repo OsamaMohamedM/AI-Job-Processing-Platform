@@ -1,6 +1,13 @@
-﻿namespace Application.Messaging;
+﻿using System.Text.Json;
 
-public sealed record JobQueuedMessage(
+namespace Application.Messaging;
+
+public static class MessageJson
+{
+    public static readonly JsonSerializerOptions Options = new(JsonSerializerDefaults.Web);
+}
+
+public record JobQueuedMessage(
     int SchemaVersion, Guid MessageId, Guid JobId, string JobType,
     string CorrelationId, string Reason, DateTime OccurredAt)
 {

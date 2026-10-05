@@ -32,6 +32,9 @@ public static class DependencyInjection
         services.AddScoped<IUserRepository, EfUserRepository>();
         services.AddScoped<Application.IRepositories.IPasswordHasher, Pbkdf2PasswordHasher>();
         services.AddScoped<ITokenService, JwtTokenService>();
+        services.AddScoped<IJobRepository, JobRepository>();
+        services.AddScoped<IJobQueriesRepository, JobQueries>();
+        services.AddScoped<IOutboxRepository, OutboxRepository>();
 
         return services;
     }

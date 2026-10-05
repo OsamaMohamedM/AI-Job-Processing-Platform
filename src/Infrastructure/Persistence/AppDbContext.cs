@@ -1,5 +1,8 @@
 using Application.IRepositories;
 using Domain.Identity;
+using Domain.Jobs.Entites;
+using Domain.Jobs.Entities;
+using Infrastructure.Persistence.Messages;
 using Microsoft.EntityFrameworkCore;
 
 namespace Infrastructure.Persistence;
@@ -15,6 +18,10 @@ public class AppDbContext : DbContext, IUnitOfWork
     }
 
     public DbSet<User> Users => Set<User>();
+    public DbSet<Job> Jobs => Set<Job>();
+    public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
+    public DbSet<JobResult> JobResults => Set<JobResult>();
+    public DbSet<JobAttempt> JobAttempts => Set<JobAttempt>();
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {

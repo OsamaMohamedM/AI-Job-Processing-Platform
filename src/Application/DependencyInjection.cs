@@ -1,4 +1,5 @@
 ﻿using AiJobPlatform.Application.Jobs;
+using Application.Common;
 using Application.Identity;
 using Application.Identity.Login;
 using Application.Identity.Register;
@@ -9,8 +10,6 @@ using Application.Jobs.JobTypes;
 using FluentValidation;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Serilog;
-using Serilog.Formatting.Compact;
 
 namespace Application;
 
@@ -32,18 +31,17 @@ public static class DependencyInjection
         services.AddScoped<GetJobResultHandler>();
         services.AddScoped<ListJobsHandler>();
 
+
+
         services.AddSingleton<IJobTypeHandler, SummarizationJobType>();
         services.AddSingleton<IJobTypeHandler, ClassificationJobType>();
         services.AddSingleton<JobTypeRegistry>();
 
         services.AddScoped<IValidator<RegisterRequest>, RegisterRequestValidator>();
         services.AddScoped<IValidator<LoginRequest>, LoginRequestValidator>();
-        Log.Logger = new LoggerConfiguration()
-    .ReadFrom.Configuration(config)
-    .Enrich.FromLogContext()
-    .Enrich.WithProperty("Service", "Application")
-    .WriteTo.Console(new CompactJsonFormatter())
-    .CreateLogger();
+        services.AddScoped<IValidator<CreateJobRequest>, CreateJobRequestValidator>();
+        services.AddScoped<IValidator<ListJobsQuery>, ListJobsQueryValidator>();
+
         return services;
     }
 }
