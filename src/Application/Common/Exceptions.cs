@@ -1,4 +1,5 @@
-﻿using Domain.Jobs.Enums;
+﻿using Application.AI;
+using Domain.Jobs.Enums;
 
 namespace Application.Common;
 
@@ -42,3 +43,18 @@ public class ValidationException : GenralException
 
 public sealed class UnsupportedJobTypeException(JobType type)
     : Exception($"No handler registered for job type {type}.");
+
+public class AiProviderException(AiErrorKind kind, string message, int? statusCode = null,
+                                        TimeSpan? retryAfter = null, Exception? inner = null)
+    : Exception(message, inner)
+{
+    public AiErrorKind Kind { get; } = kind;
+    public int? StatusCode { get; } = statusCode;
+    public TimeSpan? RetryAfter { get; } = retryAfter;
+}
+
+public sealed class InvalidAiResponseException(string message) : Exception(message);
+
+public sealed class UniqueConstraintViolationException(string message, Exception inner) : Exception(message, inner);
+
+public sealed class ConcurrencyConflictException(string message, Exception inner) : Exception(message, inner);

@@ -22,6 +22,7 @@ public class AppDbContext : DbContext, IUnitOfWork
     public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
     public DbSet<JobResult> JobResults => Set<JobResult>();
     public DbSet<JobAttempt> JobAttempts => Set<JobAttempt>();
+    public DbSet<ProcessedMessage> ProcessedMessages => Set<ProcessedMessage>();
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
@@ -36,4 +37,6 @@ public class AppDbContext : DbContext, IUnitOfWork
         base.OnModelCreating(modelBuilder);
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
     }
+
+    public void ClearTracking() => ChangeTracker.Clear();
 }

@@ -8,8 +8,13 @@ public static class MessageJson
 }
 
 public record JobQueuedMessage(
-    int SchemaVersion, Guid MessageId, Guid JobId, string JobType,
-    string CorrelationId, string Reason, DateTime OccurredAt)
+    int SchemaVersion,
+    Guid MessageId,
+    Guid JobId,
+    string JobType,
+    string CorrelationId,
+    string Reason,
+    DateTime OccurredAt)
 {
     public const string OutboxType = "JobQueued";
     public const int CurrentSchemaVersion = 1;

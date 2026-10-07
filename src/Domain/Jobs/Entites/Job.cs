@@ -82,7 +82,7 @@ public class Job : Entity<Guid>
         {
             if (LeaseExpiresAt.HasValue && LeaseExpiresAt.Value > now)
             {
-                return StartAttemptResult.LeaseInFlight;
+                return StartAttemptResult.InFlight;
             }
 
             var openAttempt = GetActiveAttempt();

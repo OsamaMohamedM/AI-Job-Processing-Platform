@@ -2,7 +2,9 @@
 
 public enum StartAttemptResult
 {
-    Success,
-    LeaseInFlight,
-    AttemptsExhausted
+    Started,
+    InFlight,
+    AlreadyFinished,
+    AttemptsExhausted,
+    Success
 }
