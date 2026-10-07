@@ -1,6 +1,6 @@
 ﻿using Domain.Common.Entities;
 
-namespace Infrastructure.Persistence.Messages;
+namespace Application.Messaging;
 
 public class OutboxMessage : Entity<Guid>
 {
@@ -15,7 +15,7 @@ public class OutboxMessage : Entity<Guid>
 
     public string? LastError { get; private set; }
 
-    private OutboxMessage()
+    public OutboxMessage()
     { }
 
     public static OutboxMessage Create(Guid messageId, string type, string payloadJson, DateTime? availableAt = null)

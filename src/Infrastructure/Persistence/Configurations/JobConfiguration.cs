@@ -60,15 +60,10 @@ public class JobConfiguration : IEntityTypeConfiguration<Job>
         builder.Property<byte[]>("RowVersion")
             .IsRowVersion();
 
-        builder.HasOne<User>()
+        builder.HasOne(a => a.User)
             .WithMany()
             .HasForeignKey(x => x.UserId)
             .OnDelete(DeleteBehavior.Restrict);
-
-        builder.HasMany(x => x.Attempts)
-            .WithOne()
-            .HasForeignKey(a => a.JobId)
-            .OnDelete(DeleteBehavior.Cascade);
 
         builder.HasOne(x => x.Result)
             .WithOne()

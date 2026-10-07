@@ -34,18 +34,18 @@ public sealed class JobQueries(AppDbContext db) : IJobQueriesRepository
             .Select(j => new JobResultLookup(j.Status, j.LastError, j.Result != null ? j.Result.Result : null))
             .FirstOrDefaultAsync(ct);
 
-    public async Task<JobListResponse> ListAsync(Guid userId, JobListFilter f, CancellationToken ct)
+    public async Task<JobListResponse> ListAsync(Guid userId, JobListFilter filter, CancellationToken ct)
     {
         var q = db.Jobs.AsNoTracking().Where(j => j.UserId == userId);
-        if (f.Status is { } s) q = q.Where(j => j.Status == s);
-        if (f.Type is { } t) q = q.Where(j => j.Type == t);
+        if (filter.Status is { } s) q = q.Where(j => j.Status == s);
+        if (filter.Type is { } t) q = q.Where(j => j.Type == t);
 
         var total = await q.CountAsync(ct);
-        var ordered = f.Descending
+        var ordered = filter.Descending
             ? q.OrderByDescending(j => j.CreatedAt).ThenByDescending(j => j.Id)
             : q.OrderBy(j => j.CreatedAt).ThenBy(j => j.Id);
 
-        var rows = await ordered.Skip((f.Page - 1) * f.PageSize).Take(f.PageSize)
+        var rows = await ordered.Skip((filter.Page - 1) * filter.PageSize).Take(filter.PageSize)
             .Select(j => new
             {
                 j.Id,
@@ -63,6 +63,6 @@ public sealed class JobQueries(AppDbContext db) : IJobQueriesRepository
 
         var items = rows.Select(r => new JobDto(r.Id, r.Type.ToString(), r.Status.ToString(), r.AttemptCount,
             r.MaxAttempts, r.CreatedAt, r.StartedAt, r.CompletedAt, r.FailedAt, r.LastError)).ToList();
-        return new JobListResponse(items, f.Page, f.PageSize, total);
+        return new JobListResponse(items, filter.Page, filter.PageSize, total);
     }
 }

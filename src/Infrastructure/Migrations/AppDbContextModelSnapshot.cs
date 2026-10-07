@@ -62,6 +62,310 @@ namespace Infrastructure.Migrations
 
                     b.ToTable("Users");
                 });
+
+            modelBuilder.Entity("Domain.Jobs.Entites.JobAttempt", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("AttemptNumber")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasPrecision(3)
+                        .HasColumnType("datetime2(3)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ErrorMessage")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<Guid>("JobId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("ModifiedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("StartedAt")
+                        .HasPrecision(3)
+                        .HasColumnType("datetime2(3)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(20)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("JobId", "AttemptNumber")
+                        .IsUnique()
+                        .HasDatabaseName("UX_JobAttempts_JobId_AttemptNumber");
+
+                    b.ToTable("JobAttempts", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_JobAttempts_AttemptNumber", "[AttemptNumber] >= 1");
+
+                            t.HasCheckConstraint("CK_JobAttempts_Status", "[Status] IN ('Started', 'Succeeded', 'Failed', 'Abandoned')");
+                        });
+                });
+
+            modelBuilder.Entity("Domain.Jobs.Entites.JobResult", b =>
+                {
+                    b.Property<Guid>("JobId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasPrecision(3)
+                        .HasColumnType("datetime2(3)");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("ModifiedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Result")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("JobId");
+
+                    b.HasIndex("JobId")
+                        .IsUnique()
+                        .HasDatabaseName("UX_JobResults_JobId");
+
+                    b.ToTable("JobResults", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_JobResults_Result_IsJson", "ISJSON([Result]) = 1");
+                        });
+                });
+
+            modelBuilder.Entity("Domain.Jobs.Entities.Job", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("AttemptCount")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasPrecision(3)
+                        .HasColumnType("datetime2(3)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasPrecision(3)
+                        .HasColumnType("datetime2(3)");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("FailedAt")
+                        .HasPrecision(3)
+                        .HasColumnType("datetime2(3)");
+
+                    b.Property<string>("Input")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("LastError")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<DateTime?>("LeaseExpiresAt")
+                        .HasPrecision(3)
+                        .HasColumnType("datetime2(3)");
+
+                    b.Property<int>("MaxAttempts")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("ModifiedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<DateTime?>("StartedAt")
+                        .HasPrecision(3)
+                        .HasColumnType("datetime2(3)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(30)");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId", "CreatedAt", "Id")
+                        .IsDescending(false, true, true)
+                        .HasDatabaseName("IX_Jobs_UserId_CreatedAt");
+
+                    SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("UserId", "CreatedAt", "Id"), new[] { "Status", "Type" });
+
+                    b.ToTable("Jobs", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_Jobs_Attempts", "[AttemptCount] >= 0 AND [AttemptCount] <= [MaxAttempts] AND [MaxAttempts] >= 1");
+
+                            t.HasCheckConstraint("CK_Jobs_Completed", "(CASE WHEN [Status] = 'Completed' THEN 1 ELSE 0 END) = (CASE WHEN [CompletedAt] IS NOT NULL THEN 1 ELSE 0 END)");
+
+                            t.HasCheckConstraint("CK_Jobs_Input_Json", "ISJSON([Input]) = 1");
+
+                            t.HasCheckConstraint("CK_Jobs_Status", "[Status] IN ('Pending','Queued','Processing','Retrying','Completed','Failed','DeadLettered')");
+
+                            t.HasCheckConstraint("CK_Jobs_Type", "[Type] IN ('Summarization','Classification')");
+                        });
+                });
+
+            modelBuilder.Entity("Infrastructure.Persistence.Messages.OutboxMessage", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("AttemptCount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
+
+                    b.Property<DateTime>("AvailableAt")
+                        .HasPrecision(3)
+                        .HasColumnType("datetime2(3)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasPrecision(3)
+                        .HasColumnType("datetime2(3)");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("LastError")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<DateTime?>("ModifiedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Payload")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("PublishedAt")
+                        .HasPrecision(3)
+                        .HasColumnType("datetime2(3)");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PublishedAt", "AvailableAt")
+                        .HasDatabaseName("IX_OutboxMessages_PublishedAt_AvailableAt");
+
+                    b.ToTable("OutboxMessages", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_OutboxMessages_AttemptCount", "[AttemptCount] >= 0");
+
+                            t.HasCheckConstraint("CK_OutboxMessages_Payload_IsJson", "ISJSON([Payload]) = 1");
+                        });
+                });
+
+            modelBuilder.Entity("Infrastructure.Persistence.Messages.ProcessedMessage", b =>
+                {
+                    b.Property<Guid>("MessageId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Outcome")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<DateTime>("ProcessedAt")
+                        .HasPrecision(3)
+                        .HasColumnType("datetime2(3)");
+
+                    b.HasKey("MessageId");
+
+                    b.ToTable("ProcessedMessages", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_ProcessedMessages_Outcome", "[Outcome] IN ('Completed', 'Retried', 'DeadLettered', 'Skipped')");
+                        });
+                });
+
+            modelBuilder.Entity("Domain.Jobs.Entites.JobAttempt", b =>
+                {
+                    b.HasOne("Domain.Jobs.Entities.Job", "Job")
+                        .WithMany("Attempts")
+                        .HasForeignKey("JobId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Job");
+                });
+
+            modelBuilder.Entity("Domain.Jobs.Entites.JobResult", b =>
+                {
+                    b.HasOne("Domain.Jobs.Entities.Job", "Job")
+                        .WithOne("Result")
+                        .HasForeignKey("Domain.Jobs.Entites.JobResult", "JobId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Job");
+                });
+
+            modelBuilder.Entity("Domain.Jobs.Entities.Job", b =>
+                {
+                    b.HasOne("Domain.Identity.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Domain.Jobs.Entities.Job", b =>
+                {
+                    b.Navigation("Attempts");
+
+                    b.Navigation("Result");
+                });
 #pragma warning restore 612, 618
         }
     }

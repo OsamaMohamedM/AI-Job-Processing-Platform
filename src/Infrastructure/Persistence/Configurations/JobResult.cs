@@ -1,7 +1,6 @@
 ﻿namespace Infrastructure.Persistence.Configurations;
 
 using Domain.Jobs.Entites;
-using Domain.Jobs.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -29,7 +28,7 @@ public class JobResultConfiguration : IEntityTypeConfiguration<JobResult>
             .IsUnique()
             .HasDatabaseName("UX_JobResults_JobId");
 
-        builder.HasOne<Job>()
+        builder.HasOne(a => a.Job)
             .WithOne(j => j.Result)
             .HasForeignKey<JobResult>(r => r.JobId)
             .OnDelete(DeleteBehavior.Cascade);

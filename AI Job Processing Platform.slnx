@@ -8,6 +8,6 @@
     <Project Path="src/Application/Application.csproj" />
     <Project Path="src/Domain/Domain.csproj" />
     <Project Path="src/Infrastructure/Infrastructure.csproj" />
-    <Project Path="src/Worker/Worker.csproj" />
   </Folder>
+  <Project Path="src/Worker/Worker.csproj" Id="d43898d5-5b28-43ab-bfc7-d7d400b726bf" />
 </Solution>

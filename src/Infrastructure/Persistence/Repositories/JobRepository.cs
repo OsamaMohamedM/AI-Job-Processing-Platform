@@ -1,5 +1,6 @@
 ﻿using Application.IRepositories;
 using Domain.Jobs.Entities;
+using Domain.Jobs.Enums;
 using Microsoft.EntityFrameworkCore;
 
 namespace Infrastructure.Persistence.Repositories;
@@ -10,4 +11,8 @@ public class JobRepository(AppDbContext db) : IJobRepository
 
     public Task<Job?> GetForProcessingAsync(Guid id, CancellationToken ct)
         => db.Jobs.Include(j => j.Attempts).FirstOrDefaultAsync(j => j.Id == id, ct);
+
+    public async Task<bool> TryMarkQueuedAsync(Guid jobId, CancellationToken ct)
+    => await db.Jobs.Where(j => j.Id == jobId && j.Status == JobStatus.Pending)
+           .ExecuteUpdateAsync(s => s.SetProperty(j => j.Status, JobStatus.Queued), ct) == 1;
 }

@@ -1,5 +1,4 @@
 ﻿using AiJobPlatform.Application.Jobs;
-using Application.Common;
 using Application.Identity;
 using Application.Identity.Login;
 using Application.Identity.Register;
@@ -24,15 +23,6 @@ public static class DependencyInjection
         services.Configure<JobsOptions>(config.GetSection("Jobs"));
         services.Configure<RetryOptions>(config.GetSection("Retry"));
 
-        services.AddScoped<RegisterUserHandler>();
-        services.AddScoped<LoginHandler>();
-        services.AddScoped<CreateJobHandler>();
-        services.AddScoped<GetJobHandler>();
-        services.AddScoped<GetJobResultHandler>();
-        services.AddScoped<ListJobsHandler>();
-
-
-
         services.AddSingleton<IJobTypeHandler, SummarizationJobType>();
         services.AddSingleton<IJobTypeHandler, ClassificationJobType>();
         services.AddSingleton<JobTypeRegistry>();
@@ -42,6 +32,22 @@ public static class DependencyInjection
         services.AddScoped<IValidator<CreateJobRequest>, CreateJobRequestValidator>();
         services.AddScoped<IValidator<ListJobsQuery>, ListJobsQueryValidator>();
 
+        return services;
+    }
+
+    public static IServiceCollection AddApiUseCases(this IServiceCollection services)
+    {
+        services.AddScoped<RegisterUserHandler>();
+        services.AddScoped<LoginHandler>();
+        services.AddScoped<CreateJobHandler>();
+        services.AddScoped<GetJobHandler>();
+        services.AddScoped<GetJobResultHandler>();
+        services.AddScoped<ListJobsHandler>();
+        return services;
+    }
+
+    public static IServiceCollection AddWorkerUseCases(this IServiceCollection services)
+    {
         return services;
     }
 }

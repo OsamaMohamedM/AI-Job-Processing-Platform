@@ -1,5 +1,9 @@
+using AiJobPlatform.Infrastructure.Messaging;
 using Application.IRepositories;
+using Application.Messaging;
 using Infrastructure.Persistence;
+using Infrastructure.Persistence.Messages;
+using Infrastructure.Persistence.Messaging;
 using Infrastructure.Persistence.Repositories;
 using Infrastructure.Security;
 using Microsoft.EntityFrameworkCore;
@@ -35,7 +39,17 @@ public static class DependencyInjection
         services.AddScoped<IJobRepository, JobRepository>();
         services.AddScoped<IJobQueriesRepository, JobQueries>();
         services.AddScoped<IOutboxRepository, OutboxRepository>();
+        services.AddScoped<IOutboxStoreRepository, OutboxStoreRepository>();
 
+        return services;
+    }
+
+    public static IServiceCollection AddRabbitMq(this IServiceCollection services, IConfiguration config)
+    {
+        services.AddOptions<RabbitMqOptions>().Bind(config.GetSection("RabbitMq")).ValidateDataAnnotations().ValidateOnStart();
+        services.AddOptions<OutboxOptions>().Bind(config.GetSection("Outbox")).ValidateDataAnnotations().ValidateOnStart();
+        services.AddSingleton<RabbitMqConnectionProvider>();
+        services.AddSingleton<IMessagePublisher, RabbitMqMessagePublisher>();
         return services;
     }
 }

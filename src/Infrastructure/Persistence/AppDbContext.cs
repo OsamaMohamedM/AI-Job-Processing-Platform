@@ -1,8 +1,8 @@
 using Application.IRepositories;
+using Application.Messaging;
 using Domain.Identity;
 using Domain.Jobs.Entites;
 using Domain.Jobs.Entities;
-using Infrastructure.Persistence.Messages;
 using Microsoft.EntityFrameworkCore;
 
 namespace Infrastructure.Persistence;
