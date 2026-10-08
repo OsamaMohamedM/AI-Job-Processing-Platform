@@ -6,6 +6,7 @@ using Application.Jobs;
 using Application.Jobs.Features.GetJobResult;
 using Application.Jobs.Features.ListJobs;
 using Application.Jobs.JobTypes;
+using Application.Jobs.Processing;
 using FluentValidation;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -43,6 +44,7 @@ public static class DependencyInjection
         services.AddScoped<GetJobHandler>();
         services.AddScoped<GetJobResultHandler>();
         services.AddScoped<ListJobsHandler>();
+        services.AddSingleton<RetryPolicy>();
         return services;
     }
 

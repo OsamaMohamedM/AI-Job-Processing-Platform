@@ -12,9 +12,7 @@ public class GeminiProvider(
     HttpClient http,
     IOptions<AiOptions> options) : IAiProvider
 {
-    public async Task<AiResponse> CompleteAsync(
-        AiRequest request,
-        CancellationToken ct)
+    public async Task<AiResponse> CompleteAsync(AiRequest request, CancellationToken ct)
     {
         var o = options.Value;
 
@@ -60,9 +58,7 @@ public class GeminiProvider(
         var url =
             $"v1beta/models/{o.Model}:generateContent";
 
-        using var req = new HttpRequestMessage(
-            HttpMethod.Post,
-            url)
+        using var req = new HttpRequestMessage(HttpMethod.Post, url)
         {
             Content = JsonContent.Create(body)
         };
@@ -74,15 +70,30 @@ public class GeminiProvider(
             using var resp = await http.SendAsync(
                 req,
                 timeout.Token);
-
             if (!resp.IsSuccessStatusCode)
             {
                 var kind = MapStatus(resp.StatusCode);
 
-                throw new AiProviderException(
-                    kind,
+                TimeSpan? retryAfter = null;
+
+                if (resp.Headers.RetryAfter is { } ra)
+                {
+                    var wait = ra.Delta ??
+                        (ra.Date is { } at
+                            ? at - DateTimeOffset.UtcNow
+                            : null);
+
+                    if (wait is { } w && w > TimeSpan.Zero)
+                    {
+                        retryAfter = TimeSpan.FromSeconds(
+                            Math.Min(w.TotalSeconds, 300));
+                    }
+                }
+
+                throw new AiProviderException(kind,
                     $"AI provider returned HTTP {(int)resp.StatusCode}.",
-                    (int)resp.StatusCode);
+                    (int)resp.StatusCode,
+                    retryAfter);
             }
 
             await using var stream =

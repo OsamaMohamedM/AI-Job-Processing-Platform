@@ -12,7 +12,7 @@ using System.Diagnostics;
 
 public class ProcessJobMessageHandler(
     IProcessedMessageRepository processed, IJobRepository jobs, JobTypeRegistry registry, IAiProvider ai,
-    IOutboxRepository outbox, IUnitOfWork uow, IOptions<ProcessingOptions> processing, TimeProvider clock)
+    IOutboxRepository outbox, IUnitOfWork uow, RetryPolicy retryPolicy, IOptions<ProcessingOptions> processing, TimeProvider clock)
 {
     private const int MaxClaimTries = 3;
     private DateTime Now => clock.GetUtcNow().UtcDateTime;
@@ -126,7 +126,26 @@ public class ProcessJobMessageHandler(
 
     private async Task<MessageDisposition> FailAsync(ConsumedMessage msg, Job job, AiFailure failure, CancellationToken ct)
     {
-        return await DeadLetterAsync(msg, job, JobFailureMessages.For(failure.Kind), ct);
+        var safe = JobFailureMessages.For(failure.Kind);
+        var retryable = failure.Kind.IsRetryable();
+        if (!retryable || !job.CanRetry())
+            return await DeadLetterAsync(msg, job, safe, ct);
+
+        var now = Now;
+        var delay = retryPolicy.Delay(job.AttemptCount, failure.RetryAfter);
+        job.ScheduleRetry(safe, "ProcessJobMessageHandler");
+        outbox.Add(JobQueuedMessage.Create(job.Id, msg.JobType, msg.CorrelationId, MessageReasons.Retry.ToString()),
+                   availableAt: now + delay);
+        processed.Add(ProcessedMessage.Create(msg.MessageId, ProcessedOutcome.Retried, now));
+
+        try { await uow.SaveChangesAsync(ct); }
+        catch (ConcurrencyConflictException)
+        {
+            uow.ClearTracking();
+            return MessageDisposition.Ack;
+        }
+
+        return MessageDisposition.Ack;
     }
 
     private async Task<MessageDisposition> DeadLetterAsync(ConsumedMessage msg, Job job, string safeError, CancellationToken ct)
