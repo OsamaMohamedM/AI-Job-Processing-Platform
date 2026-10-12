@@ -1,4 +1,4 @@
-﻿using Domain.Jobs.Enums;
+using Domain.Jobs.Enums;
 using System.Text.Json;
 
 namespace AiJobPlatform.Application.Jobs;
@@ -23,9 +23,13 @@ public static class EnumParser
     {
         result = default;
         if (string.IsNullOrWhiteSpace(value)) return false;
-        foreach (var name in Enum.GetNames<T>())
-            if (string.Equals(name, value.Trim(), StringComparison.OrdinalIgnoreCase))
-            { result = Enum.Parse<T>(name); return true; }
-        return false;
+
+        var span = value.AsSpan().Trim();
+        if (span.IsEmpty || char.IsAsciiDigit(span[0]) || span[0] == '-' || span[0] == '+')
+        {
+            return false;
+        }
+
+        return Enum.TryParse(span, ignoreCase: true, out result) && Enum.IsDefined(result);
     }
 }

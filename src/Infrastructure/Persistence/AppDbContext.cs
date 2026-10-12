@@ -1,3 +1,4 @@
+using Application.Common;
 using Application.IRepositories;
 using Application.Messaging;
 using Domain.Identity;
@@ -39,4 +40,48 @@ public class AppDbContext : DbContext, IUnitOfWork
     }
 
     public void ClearTracking() => ChangeTracker.Clear();
+
+    public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            return await base.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateConcurrencyException ex)
+        {
+            throw new ConcurrencyConflictException("A concurrency conflict occurred while updating the database.", ex);
+        }
+        catch (DbUpdateException ex) when (IsUniqueConstraintViolation(ex))
+        {
+            throw new UniqueConstraintViolationException("A unique constraint violation occurred.", ex);
+        }
+    }
+
+    public override async Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            return await base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+        }
+        catch (DbUpdateConcurrencyException ex)
+        {
+            throw new ConcurrencyConflictException("A concurrency conflict occurred while updating the database.", ex);
+        }
+        catch (DbUpdateException ex) when (IsUniqueConstraintViolation(ex))
+        {
+            throw new UniqueConstraintViolationException("A unique constraint violation occurred.", ex);
+        }
+    }
+
+    private static bool IsUniqueConstraintViolation(DbUpdateException ex)
+    {
+        for (Exception? current = ex; current != null; current = current.InnerException)
+        {
+            if (current is Microsoft.Data.SqlClient.SqlException sqlEx)
+            {
+                return sqlEx.Number is 2601 or 2627;
+            }
+        }
+        return false;
+    }
 }

@@ -1,4 +1,4 @@
-﻿using Application.Messaging;
+using Application.Messaging;
 
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -46,7 +46,9 @@ public class OutboxMessageConfiguration : IEntityTypeConfiguration<OutboxMessage
         builder.Property(m => m.LastError)
             .HasMaxLength(1000);
 
-        builder.HasIndex(m => new { m.PublishedAt, m.AvailableAt })
-            .HasDatabaseName("IX_OutboxMessages_PublishedAt_AvailableAt");
+        builder.HasIndex(m => m.AvailableAt)
+            .IncludeProperties(m => new { m.Type, m.Payload, m.AttemptCount })
+            .HasFilter("[PublishedAt] IS NULL")
+            .HasDatabaseName("IX_Outbox_Unpublished");
     }
 }

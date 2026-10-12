@@ -20,6 +20,40 @@ public sealed class PublishOutboxBatchHandler(
         }
 
         var published = 0;
+        const int flushChunkSize = 10;
+        var pendingSaves = new List<(OutboxMessage Msg, JobQueuedMessage? Payload, double DurationMs)>(flushChunkSize);
+
+        async Task FlushPublishedChunkAsync()
+        {
+            if (pendingSaves.Count == 0) return;
+
+            await uow.SaveChangesAsync(ct);
+
+            var initialMessages = pendingSaves
+                .Where(x => x.Payload?.Reason == MessageReasons.Initial.ToString())
+                .ToList();
+
+            if (initialMessages.Count > 0)
+            {
+                var initialJobIds = initialMessages.Select(x => x.Payload!.JobId).ToList();
+                var queuedCount = await jobs.TryMarkQueuedBatchAsync(initialJobIds, ct);
+                if (queuedCount > 0)
+                {
+                    foreach (var item in initialMessages)
+                    {
+                        LogJobQueued(logger, item.Payload!.JobId, "Pending", "Queued", item.Msg.Id, null);
+                    }
+                }
+            }
+
+            foreach (var item in pendingSaves)
+            {
+                var jobId = item.Payload?.JobId ?? Guid.Empty;
+                LogOutboxMessagePublished(logger, item.Msg.Id, item.Msg.Id, jobId, item.DurationMs, null);
+            }
+
+            pendingSaves.Clear();
+        }
 
         foreach (var msg in batch)
         {
@@ -35,6 +69,8 @@ public sealed class PublishOutboxBatchHandler(
             catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
             catch (Exception ex)
             {
+                await FlushPublishedChunkAsync();
+
                 var now = clock.GetUtcNow().UtcDateTime;
                 var backoff = Math.Min(Math.Pow(2, Math.Min(msg.AttemptCount + 1, 20)), o.MaxPublishBackoffSeconds);
                 var nextAttemptAt = now.AddSeconds(backoff);
@@ -48,21 +84,16 @@ public sealed class PublishOutboxBatchHandler(
 
             var publishDurationMs = Stopwatch.GetElapsedTime(startTimestamp).TotalMilliseconds;
             msg.MarkPublished();
-            await uow.SaveChangesAsync(ct);
             published++;
+            pendingSaves.Add((msg, payload, publishDurationMs));
 
-            var jobId = payload?.JobId ?? Guid.Empty;
-            LogOutboxMessagePublished(logger, msg.Id, msg.Id, jobId, publishDurationMs, null);
-
-            if (payload?.Reason == MessageReasons.Initial.ToString())
+            if (pendingSaves.Count >= flushChunkSize)
             {
-                var queued = await jobs.TryMarkQueuedAsync(payload.JobId, ct);
-                if (queued)
-                {
-                    LogJobQueued(logger, payload.JobId, "Pending", "Queued", msg.Id, null);
-                }
+                await FlushPublishedChunkAsync();
             }
         }
+
+        await FlushPublishedChunkAsync();
         return published;
     }
 

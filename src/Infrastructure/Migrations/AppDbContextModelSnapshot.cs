@@ -69,8 +69,11 @@ namespace Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("PublishedAt", "AvailableAt")
-                        .HasDatabaseName("IX_OutboxMessages_PublishedAt_AvailableAt");
+                    b.HasIndex("AvailableAt")
+                        .HasDatabaseName("IX_Outbox_Unpublished")
+                        .HasFilter("[PublishedAt] IS NULL");
+
+                    SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("AvailableAt"), new[] { "Type", "Payload", "AttemptCount" });
 
                     b.ToTable("OutboxMessages", null, t =>
                         {
@@ -225,10 +228,6 @@ namespace Infrastructure.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("JobId");
-
-                    b.HasIndex("JobId")
-                        .IsUnique()
-                        .HasDatabaseName("UX_JobResults_JobId");
 
                     b.ToTable("JobResults", null, t =>
                         {

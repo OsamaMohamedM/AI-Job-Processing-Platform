@@ -1,4 +1,4 @@
-﻿namespace Infrastructure.Persistence.Configurations;
+namespace Infrastructure.Persistence.Configurations;
 
 using Domain.Jobs.Entites;
 using Microsoft.EntityFrameworkCore;
@@ -24,9 +24,6 @@ public class JobResultConfiguration : IEntityTypeConfiguration<JobResult>
         builder.Property(r => r.CreatedAt)
             .HasPrecision(3)
             .IsRequired();
-        builder.HasIndex(r => r.JobId)
-            .IsUnique()
-            .HasDatabaseName("UX_JobResults_JobId");
 
         builder.HasOne(a => a.Job)
             .WithOne(j => j.Result)

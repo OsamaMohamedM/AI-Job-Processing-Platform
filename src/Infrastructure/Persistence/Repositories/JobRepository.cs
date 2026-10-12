@@ -1,4 +1,4 @@
-﻿using Application.IRepositories;
+using Application.IRepositories;
 using Domain.Jobs.Entities;
 using Domain.Jobs.Enums;
 using Microsoft.EntityFrameworkCore;
@@ -15,4 +15,11 @@ public class JobRepository(AppDbContext db) : IJobRepository
     public async Task<bool> TryMarkQueuedAsync(Guid jobId, CancellationToken ct)
     => await db.Jobs.Where(j => j.Id == jobId && j.Status == JobStatus.Pending)
            .ExecuteUpdateAsync(s => s.SetProperty(j => j.Status, JobStatus.Queued), ct) == 1;
+
+    public async Task<int> TryMarkQueuedBatchAsync(IReadOnlyList<Guid> jobIds, CancellationToken ct)
+    {
+        if (jobIds.Count == 0) return 0;
+        return await db.Jobs.Where(j => jobIds.Contains(j.Id) && j.Status == JobStatus.Pending)
+            .ExecuteUpdateAsync(s => s.SetProperty(j => j.Status, JobStatus.Queued), ct);
+    }
 }

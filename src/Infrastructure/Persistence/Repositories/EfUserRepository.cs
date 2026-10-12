@@ -15,7 +15,7 @@ public class EfUserRepository : IUserRepository
 
     public Task<User?> GetByEmailAsync(string email, CancellationToken cancellationToken = default)
     {
-        return _dbContext.Users.FirstOrDefaultAsync(
+        return _dbContext.Users.AsNoTracking().FirstOrDefaultAsync(
             user => user.Email == email,
             cancellationToken);
     }
