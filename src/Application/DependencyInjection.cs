@@ -1,4 +1,4 @@
-﻿using AiJobPlatform.Application.Jobs;
+using AiJobPlatform.Application.Jobs;
 using Application.Identity;
 using Application.Identity.Login;
 using Application.Identity.Register;
@@ -7,6 +7,7 @@ using Application.Jobs.Features.GetJobResult;
 using Application.Jobs.Features.ListJobs;
 using Application.Jobs.JobTypes;
 using Application.Jobs.Processing;
+using Application.Messaging;
 using FluentValidation;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -27,7 +28,7 @@ public static class DependencyInjection
         services.AddSingleton<IJobTypeHandler, SummarizationJobType>();
         services.AddSingleton<IJobTypeHandler, ClassificationJobType>();
         services.AddSingleton<JobTypeRegistry>();
-
+        services.AddSingleton<RetryPolicy>();
         services.AddScoped<IValidator<RegisterRequest>, RegisterRequestValidator>();
         services.AddScoped<IValidator<LoginRequest>, LoginRequestValidator>();
         services.AddScoped<IValidator<CreateJobRequest>, CreateJobRequestValidator>();
@@ -50,6 +51,8 @@ public static class DependencyInjection
 
     public static IServiceCollection AddWorkerUseCases(this IServiceCollection services)
     {
+        services.AddScoped<ProcessJobMessageHandler>();
+        services.AddScoped<PublishOutboxBatchHandler>();
         return services;
     }
 }

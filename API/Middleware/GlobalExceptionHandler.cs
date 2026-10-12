@@ -18,18 +18,20 @@ public class GlobalExceptionHandler : IExceptionHandler
         Exception exception,
         CancellationToken cancellationToken)
     {
-        var traceId = httpContext.Items["CorrelationId"]?.ToString()
-            ?? httpContext.TraceIdentifier;
+        var correlationId = httpContext.Items["CorrelationId"]?.ToString() ?? string.Empty;
+        var realTraceId = httpContext.TraceIdentifier;
+        var traceId = !string.IsNullOrEmpty(correlationId) ? correlationId : realTraceId;
+        var route = httpContext.Request.Path.Value ?? "/";
 
         var (statusCode, code, message, errors) = MapException(exception);
 
         if (statusCode == StatusCodes.Status500InternalServerError)
         {
-            LogUnhandledException(_logger, exception);
+            LogUnhandledApiException(_logger, exception.GetType().Name, realTraceId, correlationId, route, exception);
         }
         else
         {
-            LogHandledException(_logger, statusCode, code, exception);
+            LogHandledApiException(_logger, statusCode, code, realTraceId, correlationId, null);
         }
 
         httpContext.Response.StatusCode = statusCode;
@@ -107,15 +109,15 @@ public class GlobalExceptionHandler : IExceptionHandler
         };
     }
 
-    private static readonly Action<ILogger, Exception?> LogUnhandledException =
-        LoggerMessage.Define(
+    private static readonly Action<ILogger, string, string, string, string, Exception?> LogUnhandledApiException =
+        LoggerMessage.Define<string, string, string, string>(
             LogLevel.Error,
-            new EventId(1, "UnhandledException"),
-            "UnhandledException");
+            new EventId(1, "UnhandledApiException"),
+            "UnhandledApiException {ExceptionType} {TraceId} {CorrelationId} {Route}");
 
-    private static readonly Action<ILogger, int, string, Exception?> LogHandledException =
-        LoggerMessage.Define<int, string>(
-            LogLevel.Warning,
-            new EventId(2, "HandledException"),
-            "HandledException {StatusCode} {ErrorCode}");
+    private static readonly Action<ILogger, int, string, string, string, Exception?> LogHandledApiException =
+        LoggerMessage.Define<int, string, string, string>(
+            LogLevel.Information,
+            new EventId(2, "HandledApiException"),
+            "HandledApiException {StatusCode} {ErrorCode} {TraceId} {CorrelationId}");
 }

@@ -21,10 +21,7 @@ public static class DependencyInjection
         this IServiceCollection services,
         IConfiguration configuration)
     {
-        var connectionString =
-            configuration.GetConnectionString("Default")
-            ?? configuration.GetConnectionString("DefaultConnection")
-            ?? configuration["DefaultConnection:ConnectionString"];
+        var connectionString = configuration.GetConnectionString("DefaultConnection");
 
         services.AddDbContext<AppDbContext>(options =>
             options.UseSqlServer(connectionString, sqlOptions =>

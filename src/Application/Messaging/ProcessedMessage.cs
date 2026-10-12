@@ -3,7 +3,7 @@
 public enum ProcessedOutcome
 { Completed, Retried, DeadLettered, Skipped }
 
-public sealed class ProcessedMessage
+public class ProcessedMessage
 {
     private ProcessedMessage()
     { }
@@ -15,4 +15,3 @@ public sealed class ProcessedMessage
     public static ProcessedMessage Create(Guid messageId, ProcessedOutcome outcome, DateTime now)
         => new() { MessageId = messageId, Outcome = outcome, ProcessedAt = now };
 }
-

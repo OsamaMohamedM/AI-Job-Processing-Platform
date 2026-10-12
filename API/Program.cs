@@ -6,6 +6,8 @@ using API.Middleware;
 using Application;
 using Application.Common;
 using Infrastructure;
+using Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
 using Serilog;
 using Serilog.Formatting.Compact;
 
@@ -30,6 +32,21 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUser, HttpCurrentUser>();
 builder.Services.AddScoped<ICorrelationContext, CorrelationContext>();
 var app = builder.Build();
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider
+        .GetRequiredService<AppDbContext>();
+
+    try
+    {
+        var canConnect = await db.Database.CanConnectAsync();
+        await db.Database.MigrateAsync();
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"SQL Server error: {ex}");
+    }
+}
 app.UseSwagger();
 app.UseSwaggerUI();
 app.UseMiddleware<CorrelationIdMiddleware>();

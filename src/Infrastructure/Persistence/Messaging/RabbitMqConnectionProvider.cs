@@ -1,11 +1,11 @@
-﻿using Infrastructure.Persistence.Messages;
+using Infrastructure.Persistence.Messages;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using RabbitMQ.Client;
 
 namespace Infrastructure.Persistence.Messaging;
 
-public sealed class RabbitMqConnectionProvider(IOptions<RabbitMqOptions> options, ILogger<RabbitMqConnectionProvider> log)
+public sealed partial class RabbitMqConnectionProvider(IOptions<RabbitMqOptions> options, ILogger<RabbitMqConnectionProvider> log)
     : IAsyncDisposable
 {
     private readonly SemaphoreSlim _gate = new(1, 1);
@@ -35,14 +35,50 @@ public sealed class RabbitMqConnectionProvider(IOptions<RabbitMqOptions> options
                 AutomaticRecoveryEnabled = true,
                 NetworkRecoveryInterval = TimeSpan.FromSeconds(5)
             };
-            var c = await factory.CreateConnectionAsync("aijobs-worker", ct);
-            c.ConnectionShutdownAsync += (_, e) => { log.LogWarning("RabbitMqConnectionLost {Reason}", e.ReplyText); return Task.CompletedTask; };
-            c.RecoverySucceededAsync += (_, _) => { log.LogInformation("RabbitMqConnectionRecovered"); return Task.CompletedTask; };
-            log.LogInformation("RabbitMqConnected {Host}", o.Host);
-            return _connection = c;
+            try
+            {
+                var c = await factory.CreateConnectionAsync("aijobs-worker", ct);
+                c.ConnectionShutdownAsync += (_, e) => { LogRabbitMqConnectionLost(log, e.ReplyText); return Task.CompletedTask; };
+                c.RecoverySucceededAsync += (_, _) => { LogRabbitMqConnectionRecovered(log, o.Host); return Task.CompletedTask; };
+                LogRabbitMqConnected(log, o.Host, o.Port, o.VirtualHost);
+                return _connection = c;
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                LogRabbitMqConnectionFailed(log, o.Host, o.Port, o.VirtualHost, ex.GetType().Name, ex);
+                throw;
+            }
         }
         finally { _gate.Release(); }
     }
+
+    [LoggerMessage(
+        EventId = 601,
+        Level = LogLevel.Information,
+        Message = "RabbitMqConnected {Host} {Port} {VirtualHost}")]
+    private static partial void LogRabbitMqConnected(
+        ILogger logger, string host, int port, string virtualHost);
+
+    [LoggerMessage(
+        EventId = 602,
+        Level = LogLevel.Warning,
+        Message = "RabbitMqConnectionLost {Reason}")]
+    private static partial void LogRabbitMqConnectionLost(
+        ILogger logger, string reason);
+
+    [LoggerMessage(
+        EventId = 603,
+        Level = LogLevel.Information,
+        Message = "RabbitMqConnectionRecovered {Host}")]
+    private static partial void LogRabbitMqConnectionRecovered(
+        ILogger logger, string host);
+
+    [LoggerMessage(
+        EventId = 604,
+        Level = LogLevel.Error,
+        Message = "RabbitMqConnectionFailed {Host} {Port} {VirtualHost} {ExceptionType}")]
+    private static partial void LogRabbitMqConnectionFailed(
+        ILogger logger, string host, int port, string virtualHost, string exceptionType, Exception exception);
 
     public async ValueTask DisposeAsync()
     {

@@ -22,6 +22,87 @@ namespace Infrastructure.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("Application.Messaging.OutboxMessage", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("AttemptCount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
+
+                    b.Property<DateTime>("AvailableAt")
+                        .HasPrecision(3)
+                        .HasColumnType("datetime2(3)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasPrecision(3)
+                        .HasColumnType("datetime2(3)");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("LastError")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<DateTime?>("ModifiedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Payload")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("PublishedAt")
+                        .HasPrecision(3)
+                        .HasColumnType("datetime2(3)");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PublishedAt", "AvailableAt")
+                        .HasDatabaseName("IX_OutboxMessages_PublishedAt_AvailableAt");
+
+                    b.ToTable("OutboxMessages", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_OutboxMessages_AttemptCount", "[AttemptCount] >= 0");
+
+                            t.HasCheckConstraint("CK_OutboxMessages_Payload_IsJson", "ISJSON([Payload]) = 1");
+                        });
+                });
+
+            modelBuilder.Entity("Application.Messaging.ProcessedMessage", b =>
+                {
+                    b.Property<Guid>("MessageId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Outcome")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<DateTime>("ProcessedAt")
+                        .HasPrecision(3)
+                        .HasColumnType("datetime2(3)");
+
+                    b.HasKey("MessageId");
+
+                    b.ToTable("ProcessedMessages", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_ProcessedMessages_Outcome", "[Outcome] IN ('Completed', 'Retried', 'DeadLettered', 'Skipped')");
+                        });
+                });
+
             modelBuilder.Entity("Domain.Identity.User", b =>
                 {
                     b.Property<Guid>("Id")
@@ -243,87 +324,6 @@ namespace Infrastructure.Migrations
                             t.HasCheckConstraint("CK_Jobs_Status", "[Status] IN ('Pending','Queued','Processing','Retrying','Completed','Failed','DeadLettered')");
 
                             t.HasCheckConstraint("CK_Jobs_Type", "[Type] IN ('Summarization','Classification')");
-                        });
-                });
-
-            modelBuilder.Entity("Infrastructure.Persistence.Messages.OutboxMessage", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<int>("AttemptCount")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasDefaultValue(0);
-
-                    b.Property<DateTime>("AvailableAt")
-                        .HasPrecision(3)
-                        .HasColumnType("datetime2(3)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasPrecision(3)
-                        .HasColumnType("datetime2(3)");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("LastError")
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
-
-                    b.Property<DateTime?>("ModifiedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("ModifiedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Payload")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("PublishedAt")
-                        .HasPrecision(3)
-                        .HasColumnType("datetime2(3)");
-
-                    b.Property<string>("Type")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .IsUnicode(false)
-                        .HasColumnType("varchar(100)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("PublishedAt", "AvailableAt")
-                        .HasDatabaseName("IX_OutboxMessages_PublishedAt_AvailableAt");
-
-                    b.ToTable("OutboxMessages", null, t =>
-                        {
-                            t.HasCheckConstraint("CK_OutboxMessages_AttemptCount", "[AttemptCount] >= 0");
-
-                            t.HasCheckConstraint("CK_OutboxMessages_Payload_IsJson", "ISJSON([Payload]) = 1");
-                        });
-                });
-
-            modelBuilder.Entity("Infrastructure.Persistence.Messages.ProcessedMessage", b =>
-                {
-                    b.Property<Guid>("MessageId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("Outcome")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .IsUnicode(false)
-                        .HasColumnType("varchar(20)");
-
-                    b.Property<DateTime>("ProcessedAt")
-                        .HasPrecision(3)
-                        .HasColumnType("datetime2(3)");
-
-                    b.HasKey("MessageId");
-
-                    b.ToTable("ProcessedMessages", null, t =>
-                        {
-                            t.HasCheckConstraint("CK_ProcessedMessages_Outcome", "[Outcome] IN ('Completed', 'Retried', 'DeadLettered', 'Skipped')");
                         });
                 });
 

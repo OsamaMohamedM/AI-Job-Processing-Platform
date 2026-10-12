@@ -1,4 +1,5 @@
-﻿using Infrastructure.Persistence.Messages;
+﻿using Application.Messaging;
+using Infrastructure.Persistence.Messages;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 

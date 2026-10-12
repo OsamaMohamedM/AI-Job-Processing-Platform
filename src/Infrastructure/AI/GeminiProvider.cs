@@ -2,6 +2,7 @@
 
 using Application.AI;
 using Application.Common;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System.Diagnostics;
 using System.Net;
@@ -10,7 +11,9 @@ using System.Text.Json;
 
 public class GeminiProvider(
     HttpClient http,
-    IOptions<AiOptions> options) : IAiProvider
+    IOptions<AiOptions> options,
+    ILogger<GeminiProvider> logger
+    ) : IAiProvider
 {
     public async Task<AiResponse> CompleteAsync(AiRequest request, CancellationToken ct)
     {
@@ -55,8 +58,7 @@ public class GeminiProvider(
             }
         };
 
-        var url =
-            $"v1beta/models/{o.Model}:generateContent";
+        var url = $"models/{o.Model}:generateContent";
 
         using var req = new HttpRequestMessage(HttpMethod.Post, url)
         {
@@ -72,7 +74,17 @@ public class GeminiProvider(
                 timeout.Token);
             if (!resp.IsSuccessStatusCode)
             {
+                logger.LogError("AI provider returned HTTP {(StatusCode)} after {ElapsedMilliseconds} ms.",
+                    (int)resp.StatusCode,
+                    sw.ElapsedMilliseconds);
+                logger.LogInformation("AI provider response headers: {Headers}", resp.Headers.ToString());
+                var errorBody = await resp.Content.ReadAsStringAsync(timeout.Token);
+
                 var kind = MapStatus(resp.StatusCode);
+                logger.LogError(
+      "Gemini API error. StatusCode={StatusCode}, Body={Body}",
+      (int)resp.StatusCode,
+      errorBody);
 
                 TimeSpan? retryAfter = null;
 
@@ -116,6 +128,8 @@ public class GeminiProvider(
         catch (OperationCanceledException)
             when (!ct.IsCancellationRequested)
         {
+            logger.LogWarning("AI provider call timed out after {TimeoutSeconds} seconds.",
+                o.TimeoutSeconds);
             throw new AiProviderException(
                 AiErrorKind.Timeout,
                 "AI provider call timed out.");
@@ -133,6 +147,7 @@ public class GeminiProvider(
             or InvalidOperationException
             or IndexOutOfRangeException)
         {
+            logger.LogError(ex, "AI provider returned an unreadable response.");
             throw new AiProviderException(
                 AiErrorKind.InvalidResponse,
                 "AI provider returned an unreadable response.",

@@ -121,7 +121,7 @@ public class Job : Entity<Guid>
 
         MarkModified(modifiedBy);
 
-        return StartAttemptResult.Success;
+        return StartAttemptResult.Started;
     }
 
     public void Complete(string resultJson, string modifiedBy)
